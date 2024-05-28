@@ -7,7 +7,7 @@ from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import Dataset
 from scipy.special import softmax
-
+ 
 class MyDataset(Dataset):
     def __init__(self, data):
         self.data = data
