@@ -7,25 +7,63 @@ from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import Dataset
 from scipy.special import softmax
- 
+import random
+import json 
+
 class MyDataset(Dataset):
     def __init__(self, data):
-        self.data = data
+                
+        # Check if the file exists in the current directory
+        if not os.path.exists("data.json"):
+            data_path = data
+            dic=[]
+            # Iterate through folders in the dataset
+            for i in range(2):
+                images, matrix = load_images_and_matrix(data_path)
+                m, notA,notB, key1, key2, des1, des2 = match(images,matrix)
+                key1 = list([(kp.pt[0], kp.pt[1]) for kp in key1])
+                key2 = list([(kp.pt[0], kp.pt[1]) for kp in key2])
+                
+                des1 = list([row.tolist() for row in des1])
+                des2 = list([row.tolist() for row in des2])
+                
+                notA = list(notA)
+                notB = list(notB)
+                m = list([(i[0],i[1]) for i in m])
+                dic.append({'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m})
+                # Save dictionary to JSON file 
+                with open("data.json", "w") as file:
+                    json.dump(dic, file)
+        # Open and load the JSON file
+        with open("data.json", "r") as file:
+            dic = json.load(file)
+        self.data = dic
+            
+
+
+
+
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        images, matrix = self.data[idx]
-        m, notA,notB, key1, key2, des1, des2 = match(images,matrix)
-        print("len des1 :",des1.shape)
-        print("len des2 :",des2.shape)
+       
+        # Retrieve the selected dictionary from the list
+        selected_dictionary = self.data[idx]
 
+        # Deserialize cv2 objects from the dictionary
+        key1 = selected_dictionary['key1']
+        des1 = selected_dictionary['des1']
+        key2 = selected_dictionary['key2']
+        des2 = selected_dictionary['des2']
+        notA = selected_dictionary['notA']
+        notB = selected_dictionary['notB']
+        m = selected_dictionary['m']
+       
         return {'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m}
 
-
 def load_images_and_matrix(folder_path):
-    
 
     image_files = os.listdir(folder_path)
     random_number = random.randint(0, len(image_files) - 1)
@@ -167,15 +205,10 @@ def match_keypoints(keypoints1, keypoints2, max_distance = 3):
             m.append((i,j))
             a.add(i)
             b.add(j)
-           
-
+    
     notA = set(range(len(keypoints1))) - a
     notB = set(range(len(keypoints2))) - b
-    
-    print("len of sorted_p: ", len(sorted_p))
-    print("len of notA: ", len(notA))
-    print("len of notB: ", len(notB))
-    print("len of m: ", len(m))
+
     return m, notA, notB
 
 
@@ -205,10 +238,10 @@ def match(images, matrix):
 
     # Convert back to Cartesian coordinates by dividing by the third element (homogeneous coordinate)
     transformed_coordinates_xy1 = transformed_coordinates1[:, :2] / transformed_coordinates1[:, 2, None]
-
+   
     m, notA, notB = match_keypoints(transformed_coordinates_xy1.tolist(), keypoint_coordinates2.tolist())
 
-    # Draw matching lines on the images
+   # Draw matching lines on the images
     matched_image = draw_matching_lines(img0, key1, img1, key2, m)
 
     # Display the result
@@ -218,29 +251,19 @@ def match(images, matrix):
     plt.tight_layout()
 
     plt.show()
+    
 
+    # return m, notA,notB, serialized_key1, serialized_key2, serialized_des1, serialized_des2
     return m, notA,notB, key1, key2, des1, des2
 
 #main:
-# count=0
-# data_path = './resize_photos'
-# dic=[]
-# # Iterate through folders in the dataset
-# for i in range(100):
-#     images, matrix = load_images_and_matrix(data_path)
-#     dic.append((images,matrix))
-    
+data_path = './resize_photos'
+   
+dataset = MyDataset(data_path)
 
-# # Create an instance of the custom dataset class
-# dataset = MyDataset(dic)
-# # Example usage:
-# # Accessing the first sample in the dataset
-# for i in range(100):
-#     print("dicti:", dataset[i])
+print("dicti:", dataset[1])
+print(dataset.__len__())
 
-# # Get the length of the dataset
-# dataset_length = len(dataset)
-# print("Length of the dataset:", dataset_length)
 
 
 
