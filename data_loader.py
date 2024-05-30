@@ -1,3 +1,5 @@
+# data_loader.py
+# import pickle
 import os
 import random
 import cv2
@@ -7,61 +9,40 @@ from sklearn.neighbors import KDTree
 import torch
 from torch.utils.data import Dataset
 from scipy.special import softmax
-import random
-import json 
 
 class MyDataset(Dataset):
-    def __init__(self, data):
-                
-        # Check if the file exists in the current directory
-        if not os.path.exists("data.json"):
-            data_path = data
-            dic=[]
-            # Iterate through folders in the dataset
-            for i in range(20):
-                images, matrix = load_images_and_matrix(data_path)
-                m, notA,notB, key1, key2, des1, des2 = match(images,matrix)
-                key1 = list([(kp.pt[0], kp.pt[1]) for kp in key1])
-                key2 = list([(kp.pt[0], kp.pt[1]) for kp in key2])
-                
-                des1 = list([row.tolist() for row in des1])
-                des2 = list([row.tolist() for row in des2])
-                
-                notA = list(notA)
-                notB = list(notB)
-                m = list([(i[0],i[1]) for i in m])
-                dic.append({'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m})
-                # Save dictionary to JSON file 
-                with open("data.json", "w") as file:
-                    json.dump(dic, file)
-        # Open and load the JSON file
-        with open("data.json", "r") as file:
-            dic = json.load(file)
-        self.data = dic
-            
+    def __init__(self, data_path):
+        self.data_path = data_path
+        self.data = self._load_data()
+        # np.savez('data.npz', dicList=self.data)
 
+        # self.save_dataset('data.pickle')
+
+    def _load_data(self):
+        dicList = []
+        for i in range(2):
+            images, matrix = load_images_and_matrix(self.data_path)
+            # dic.append((images, matrix))
+            m, notA, notB, key1, key2, des1, des2 = match(images, matrix)
+            
+            dicList.append({'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m})
+            np.savez('data.npz', dicList=dicList)
+        return dicList
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-       
-        # Retrieve the selected dictionary from the list
-        selected_dictionary = self.data[idx]
-
-        # Deserialize cv2 objects from the dictionary
-        key1 = selected_dictionary['key1']
-        des1 = selected_dictionary['des1']
-        key2 = selected_dictionary['key2']
-        des2 = selected_dictionary['des2']
-        notA = selected_dictionary['notA']
-        notB = selected_dictionary['notB']
-        m = selected_dictionary['m']
-       
-        return {'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m}
-
-
+        # images, matrix = self.data[idx]
+        # m, notA, notB, key1, key2, des1, des2 = match(images, matrix)
+        #return {'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m}
+        return 0
+    # def save_dataset(self, filename):
+    #     with open(filename, 'wb') as f:
+    #         pickle.dump(self.data, f)
+    
 def load_images_and_matrix(folder_path):
+    
 
     image_files = os.listdir(folder_path)
     random_number = random.randint(0, len(image_files) - 1)
@@ -91,7 +72,7 @@ def load_images_and_matrix(folder_path):
 
     return images, H
 
-
+    
 def detect_and_draw_keypoints(image):
     sift = cv2.SIFT_create()
     keypoints, descriptors = sift.detectAndCompute(image, None)
@@ -202,12 +183,16 @@ def match_keypoints(keypoints1, keypoints2, max_distance = 3):
             m.append((i,j))
             a.add(i)
             b.add(j)
-    
+           
+
     notA = set(range(len(keypoints1))) - a
     notB = set(range(len(keypoints2))) - b
-
+    
+    print("len of sorted_p: ", len(sorted_p))
+    print("len of notA: ", len(notA))
+    print("len of notB: ", len(notB))
+    print("len of m: ", len(m))
     return m, notA, notB
-
 
 def match(images, matrix):
     img0, key1, des1= detect_and_draw_keypoints(images[0])
@@ -234,10 +219,10 @@ def match(images, matrix):
 
     # Convert back to Cartesian coordinates by dividing by the third element (homogeneous coordinate)
     transformed_coordinates_xy1 = transformed_coordinates1[:, :2] / transformed_coordinates1[:, 2, None]
-   
+
     m, notA, notB = match_keypoints(transformed_coordinates_xy1.tolist(), keypoint_coordinates2.tolist())
 
-   # Draw matching lines on the images
+    # Draw matching lines on the images
     matched_image = draw_matching_lines(img0, key1, img1, key2, m)
 
     # Display the result
@@ -247,19 +232,43 @@ def match(images, matrix):
     plt.tight_layout()
 
     plt.show()
-    
 
-    # return m, notA,notB, serialized_key1, serialized_key2, serialized_des1, serialized_des2
     return m, notA,notB, key1, key2, des1, des2
 
-#main:
-# data_path = './resize_photos'
-   
-# dataset = MyDataset(data_path)
+data_path = './resize_photos'
+dataset = MyDataset(data_path)
+# dic=[]
+# Iterate through folders in the dataset
+# for i in range(100):
+#     images, matrix = load_images_and_matrix(data_path)
+#     dic.append((images,matrix))
+    
 
+# Create an instance of the custom dataset class
 
+# Example usage:
+# Accessing the first sample in the dataset
+# for i in range(100):
+#     print("dicti:", dataset[i])
 
+# import pickle
 
+# # Load the Pickle file
+# with open('data.pickle', 'rb') as f:
+#     # Load the serialized data
+#     data = pickle.load(f)
 
+# # Access and use the extracted objects
+# print(type(data))  # Check the type of the loaded data
+# if isinstance(data, list):
+#     for obj in data:
+#         print(obj)  # Access and process individual objects
+#         break
+# elif isinstance(data, dict):
+#     for key, value in data.items():
+#         print(key, value)  # Access objects using keys in a dictionary
 
+# data = np.load('data.npz')
 
+# # Access loaded data
+# loaded_data = data['dicList']

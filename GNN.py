@@ -13,113 +13,101 @@ import torch.nn as nn
 import torch.nn.functional as F
 from newDataSet import * 
    
-# class LightGlue:
-#     def __init__(self, input_dim, output_dim):
-#         # Initialize LightGlue with input and output dimensions
-#         self.input_dim = input_dim
-#         self.output_dim = output_dim
-        
-#     def compute_correspondence_loss(self, P, M, A_unmatchable, B_unmatchable, sigma_A, sigma_B):
-#         L = P.shape[0]  # Number of layers
-#         loss = 0
-        
-#         # Compute correspondence loss term
-#         correspondence_loss = -np.log(P)
-#         correspondence_loss_sum = np.sum(correspondence_loss[:, M[:, 0], M[:, 1]])
-#         unmatchable_loss_A = 0.5 * np.sum(np.log(1 - P[:, A_unmatchable])) / len(A_unmatchable)
-#         unmatchable_loss_B = 0.5 * np.sum(np.log(1 - P[:, :, B_unmatchable])) / len(B_unmatchable)
-        
-#         loss += correspondence_loss_sum + unmatchable_loss_A + unmatchable_loss_B
-        
-#         return loss / L
-    
-#     def train_confidence_classifier(self, predictions, final_predictions):
-#         L = len(predictions)  # Number of layers
-#         loss = 0
-        
-#         # Compute binary cross-entropy loss for each layer
-#         binary_cross_entropy = -(final_predictions * np.log(predictions) + (1 - final_predictions) * np.log(1 - predictions))
-#         loss = np.mean(binary_cross_entropy[:-1])  # Exclude the last layer
-        
-#         return loss / (L - 1)
 
-
-class LightweightHead(nn.Module):
+class LightGlue(nn.Module):
     def __init__(self, input_dim, output_dim):
-        super(LightweightHead, self).__init__()
+        super(LightGlue, self).__init__()
         self.linear1 = nn.Linear(input_dim, output_dim)
         self.linear2 = nn.Linear(input_dim, 1)
 
     def forward(self, xA, xB):
-        S = torch.matmul(self.linear1(xA), self.linear1(xB).transpose(0, 1))
+        
+        S = torch.matmul(self.linear1(xA), self.linear1(xB).T)
 
         sigma_A = torch.sigmoid(self.linear2(xA))
         sigma_B = torch.sigmoid(self.linear2(xB))
 
         softmax_SkA = F.softmax(S, dim=1)
         softmax_SkB = F.softmax(S, dim=0)
-
         P = torch.zeros_like(S) 
 
         P = sigma_A * sigma_B * softmax_SkB * softmax_SkA
+
+
         return sigma_A, sigma_B, P
     
-
 def loss(P, M, not_A, not_B, sigma_A, sigma_B):
-    loss = 0
-    
-    # Correspondences loss term
-    M_indices = torch.tensor(M)  # Convert M to tensor
-    correspondence_loss = torch.log(P)
-    correspondence_loss_sum = torch.sum(correspondence_loss[:, M_indices[:, 0], M_indices[:, 1]]) / len(M_indices)
-    
-    # Unmatchable points loss terms
-    unmatchable_loss_A = 0.5 * torch.sum(torch.log(1 - sigma_A[:, not_A])) / len(not_A) 
-    unmatchable_loss_B = 0.5 * torch.sum(torch.log(1 - sigma_B[:, not_B])) / len(not_B) 
-    
+    epsilon = 1e-8
+    loss=0
+
+    M = torch.tensor(M, dtype=torch.long)
+    not_A = torch.tensor(not_A, dtype=torch.long)
+    not_B = torch.tensor(not_B, dtype=torch.long)
+    # print("p:",P)
+    # print("sigma_a",sigma_A)
+    correspondence_loss_sum = ((torch.log(P[M[:, 0], M[:, 1]]+epsilon) ).sum())/len(M)
+    unmatchable_loss_A = 0.5 * ((torch.log(1 - sigma_A[not_A]+epsilon)).sum()) / len(not_A)
+    unmatchable_loss_B = 0.5 * ((torch.log(1 - sigma_B[not_B]+epsilon)).sum()) / len(not_B)
     loss = correspondence_loss_sum + unmatchable_loss_A + unmatchable_loss_B 
 
-    
     return -loss
+# def loss(P, M, not_A, not_B, sigma_A, sigma_B):
+#     loss = 0
+    
+#     # Correspondences loss term
+#     M_indices = torch.tensor(M, dtype=torch.long)
+#     correspondence_loss = torch.log(P)
+
+#     correspondence_loss_sum = correspondence_loss[M_indices[:, 0], M_indices[:, 1]].sum() / len(M_indices)
+    
+#     unmatchable_loss_A = 0.5 * torch.log(1 - sigma_A[not_A]).sum() / len(not_A)
+#     unmatchable_loss_B = 0.5 * torch.log(1 - sigma_B[not_B]).sum() / len(not_B)
+    
+#     loss = correspondence_loss_sum + unmatchable_loss_A + unmatchable_loss_B 
+
+#     return -loss
+
+# def loss(P, M, not_A, not_B, sigma_A, sigma_B):
+#     loss = 0
+
+#     # Correspondences loss term (assuming M is a LongTensor of indices)
+#     M_indices = torch.tensor(M, dtype=torch.long)  # Convert M to LongTensor
+#     correspondence_loss = -F.log_softmax(P,dim=1)  # Negative log-softmax for cross-entropy
+#     correspondence_loss_sum = correspondence_loss[M_indices[:, 0], M_indices[:, 1]].sum() / len(M_indices)
+#     # Unmatchable loss terms
+#     unmatchable_loss_A = -torch.mean(F.log_softmax(torch.cat((sigma_A, 1 - sigma_A), dim=1), dim=1)[not_A])  # Explicit dim=1
+#     unmatchable_loss_B = -torch.mean(F.log_softmax(torch.cat((sigma_B, 1 - sigma_B), dim=1), dim=1)[not_B])  # Explicit dim=1
+
+#     loss = correspondence_loss_sum + unmatchable_loss_A + unmatchable_loss_B
+
+#     return loss
     
 
         
 
 
 # Example usage:
+
+data_path = './resize_photos'
+   
+dataset = MyDataset(data_path)
+
+
 input_dim = 128  # Example input dimension// ?????
-output_dim = 64  # Example output dimension// ?????
+output_dim = 128  # Example output dimension// ?????
 
 
-model = LightweightHead(input_dim, output_dim)
-xA = torch.randn(10, input_dim)  # Example input tensor A
-xB = torch.randn(10, input_dim)  # Example input tensor B
+model = LightGlue(input_dim, output_dim)
+# xA = torch.randn(10, input_dim)  # Example input tensor A
+# xB = torch.randn(10, input_dim)  # Example input tensor B
+xA=torch.tensor(dataset[0]['des1'],dtype=torch.float32)
+xB=torch.tensor(dataset[0]['des2'],dtype=torch.float32)
 sigma_A, sigma_B, P = model(xA, xB)
-# loss = loss(P, m, not_A, not_B, sigma_A, sigma_B)
-print(P)
+loss = loss(P, dataset[0]['m'], dataset[0]['notA'], dataset[0]['notB'], sigma_A, sigma_B)
+print(loss)
 
 
 
-
-
-# count=0
-# data_path = './resize_photos'
-# dic=[]
-# # Iterate through folders in the dataset
-# for i in range(100):
-#     images, matrix = load_images_and_matrix(data_path)
-#     dic.append((images,matrix))
-
-# # Create an instance of the custom dataset class
-# dataset = MyDataset(dic)
-# # Example usage:
-# # Accessing the first sample in the dataset
-# for i in range(100):
-#     print("dicti:", dataset[i])
-
-# # Get the length of the dataset
-# dataset_length = len(dataset)
-# print("Length of the dataset:", dataset_length)
 
 
 
