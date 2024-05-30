@@ -38,11 +38,6 @@ class MyDataset(Dataset):
         with open("data.json", "r") as file:
             dic = json.load(file)
         self.data = dic
-            
-
-
-
-
 
     def __len__(self):
         return len(self.data)
@@ -62,6 +57,7 @@ class MyDataset(Dataset):
         m = selected_dictionary['m']
        
         return {'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m}
+
 
 def load_images_and_matrix(folder_path):
 
@@ -92,7 +88,6 @@ def load_images_and_matrix(folder_path):
     images = [img, warped_image]
 
     return images, H
-
 
 
 def detect_and_draw_keypoints(image):
@@ -212,7 +207,6 @@ def match_keypoints(keypoints1, keypoints2, max_distance = 3):
     return m, notA, notB
 
 
-
 def match(images, matrix):
     img0, key1, des1= detect_and_draw_keypoints(images[0])
     img1, key2, des2= detect_and_draw_keypoints(images[1])
@@ -256,13 +250,11 @@ def match(images, matrix):
     # return m, notA,notB, serialized_key1, serialized_key2, serialized_des1, serialized_des2
     return m, notA,notB, key1, key2, des1, des2
 
-#main:
-data_path = './resize_photos'
+# #main:
+# data_path = './resize_photos'
    
-dataset = MyDataset(data_path)
+# dataset = MyDataset(data_path)
 
-print("dicti:", dataset[1])
-print(dataset.__len__())
 
 
 
