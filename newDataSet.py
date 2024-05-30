@@ -18,7 +18,7 @@ class MyDataset(Dataset):
             data_path = data
             dic=[]
             # Iterate through folders in the dataset
-            for i in range(2):
+            for i in range(20):
                 images, matrix = load_images_and_matrix(data_path)
                 m, notA,notB, key1, key2, des1, des2 = match(images,matrix)
                 key1 = list([(kp.pt[0], kp.pt[1]) for kp in key1])
@@ -39,10 +39,6 @@ class MyDataset(Dataset):
             dic = json.load(file)
         self.data = dic
             
-
-
-
-
 
     def __len__(self):
         return len(self.data)
@@ -92,7 +88,6 @@ def load_images_and_matrix(folder_path):
     images = [img, warped_image]
 
     return images, H
-
 
 
 def detect_and_draw_keypoints(image):
@@ -212,7 +207,6 @@ def match_keypoints(keypoints1, keypoints2, max_distance = 3):
     return m, notA, notB
 
 
-
 def match(images, matrix):
     img0, key1, des1= detect_and_draw_keypoints(images[0])
     img1, key2, des2= detect_and_draw_keypoints(images[1])
@@ -257,12 +251,12 @@ def match(images, matrix):
     return m, notA,notB, key1, key2, des1, des2
 
 #main:
-data_path = './resize_photos'
+# data_path = './resize_photos'
    
-dataset = MyDataset(data_path)
+# dataset = MyDataset(data_path)
 
-print("dicti:", dataset[1])
-print(dataset.__len__())
+# print("dicti:", dataset[1])
+# print(dataset.__len__())
 
 
 
