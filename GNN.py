@@ -87,8 +87,8 @@ def loss(P, M, not_A, not_B, sigma_A, sigma_B):
 
 
 # Example usage:
-input_dim = 100  # Example input dimension// ?????
-output_dim = 50  # Example output dimension// ?????
+input_dim = 128  # Example input dimension// ?????
+output_dim = 64  # Example output dimension// ?????
 
 
 model = LightweightHead(input_dim, output_dim)
