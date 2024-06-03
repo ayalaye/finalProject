@@ -29,10 +29,16 @@ class LightGlue(nn.Module):
 
         softmax_SkA = F.softmax(S, dim=1)
         softmax_SkB = F.softmax(S, dim=0)
+        print(sigma_A.shape)
+        print(sigma_B.shape)
+        print(softmax_SkA.shape)
+        print(softmax_SkB.shape)
+
+
         P = torch.zeros_like(S) 
 
-        P = sigma_A * sigma_B * softmax_SkB * softmax_SkA
-
+        P = sigma_A @ sigma_B.T * softmax_SkB * softmax_SkA
+        print(P)
 
         return sigma_A, sigma_B, P
     
@@ -98,8 +104,7 @@ output_dim = 128  # Example output dimension// ?????
 
 
 model = LightGlue(input_dim, output_dim)
-# xA = torch.randn(10, input_dim)  # Example input tensor A
-# xB = torch.randn(10, input_dim)  # Example input tensor B
+
 xA=torch.tensor(dataset[0]['des1'],dtype=torch.float32)
 xB=torch.tensor(dataset[0]['des2'],dtype=torch.float32)
 sigma_A, sigma_B, P = model(xA, xB)
