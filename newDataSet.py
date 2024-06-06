@@ -18,7 +18,7 @@ class MyDataset(Dataset):
             data_path = data
             dic=[]
             # Iterate through folders in the dataset
-            for i in range(20):
+            for i in range(10000):
                 images, matrix = load_images_and_matrix(data_path)
                 m, notA,notB, key1, key2, des1, des2 = match(images,matrix)
                 key1 = list([(kp.pt[0], kp.pt[1]) for kp in key1])
