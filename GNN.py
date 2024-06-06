@@ -106,8 +106,7 @@ output_dim = 128  # Example output dimension// ?????
 
 
 model = LightGlue(input_dim, output_dim)
-# xA = torch.randn(10, input_dim)  # Example input tensor A
-# xB = torch.randn(10, input_dim)  # Example input tensor B
+
 xA=torch.tensor(dataset[0]['des1'],dtype=torch.float32)
 xB=torch.tensor(dataset[0]['des2'],dtype=torch.float32)
 print(xA[0,0:5])

@@ -40,6 +40,7 @@ class MyDataset(Dataset):
         self.data = dic
             
 
+
     def __len__(self):
         return len(self.data)
 
@@ -58,6 +59,7 @@ class MyDataset(Dataset):
         m = selected_dictionary['m']
        
         return {'key1': key1, 'des1': des1, 'key2': key2, 'des2': des2, 'notA': notA, 'notB': notB, 'm': m}
+
 
 def load_images_and_matrix(folder_path):
 
@@ -255,8 +257,6 @@ def match(images, matrix):
    
 # dataset = MyDataset(data_path)
 
-# print("dicti:", dataset[1])
-# print(dataset.__len__())
 
 
 
