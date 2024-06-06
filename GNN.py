@@ -1,4 +1,5 @@
 
+
 import numpy as np
 import torch 
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ import torch_geometric.transforms as T
 from itertools import combinations, product
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as init
 from newDataSet import * 
    
 
@@ -18,20 +20,26 @@ class LightGlue(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(LightGlue, self).__init__()
         self.linear1 = nn.Linear(input_dim, output_dim)
+        init.xavier_uniform_(self.linear1.weight)
         self.linear2 = nn.Linear(input_dim, 1)
+        init.xavier_uniform_(self.linear2.weight)
 
     def forward(self, xA, xB):
         
         S = torch.matmul(self.linear1(xA), self.linear1(xB).T)
-
+        print(S[:5,:5])
         sigma_A = torch.sigmoid(self.linear2(xA))
         sigma_B = torch.sigmoid(self.linear2(xB))
+        
+        softmax_SkA = F.softmax(S/100000, dim=1)
+        softmax_SkB = F.softmax(S/100000, dim=0)
+        P = torch.zeros_like(S)
+        print(sigma_A[:10])
+        print(sigma_B[:10]) 
+        print(softmax_SkA)
+        print(softmax_SkB)
 
-        softmax_SkA = F.softmax(S, dim=1)
-        softmax_SkB = F.softmax(S, dim=0)
-        P = torch.zeros_like(S) 
-
-        P = sigma_A * sigma_B * softmax_SkB * softmax_SkA
+        P = sigma_A @ sigma_B.T * softmax_SkB * softmax_SkA
 
 
         return sigma_A, sigma_B, P
@@ -43,7 +51,7 @@ def loss(P, M, not_A, not_B, sigma_A, sigma_B):
     M = torch.tensor(M, dtype=torch.long)
     not_A = torch.tensor(not_A, dtype=torch.long)
     not_B = torch.tensor(not_B, dtype=torch.long)
-    # print("p:",P)
+    print("p:",P)
     # print("sigma_a",sigma_A)
     correspondence_loss_sum = ((torch.log(P[M[:, 0], M[:, 1]]+epsilon) ).sum())/len(M)
     unmatchable_loss_A = 0.5 * ((torch.log(1 - sigma_A[not_A]+epsilon)).sum()) / len(not_A)
@@ -102,6 +110,7 @@ model = LightGlue(input_dim, output_dim)
 # xB = torch.randn(10, input_dim)  # Example input tensor B
 xA=torch.tensor(dataset[0]['des1'],dtype=torch.float32)
 xB=torch.tensor(dataset[0]['des2'],dtype=torch.float32)
+print(xA[0,0:5])
 sigma_A, sigma_B, P = model(xA, xB)
 loss = loss(P, dataset[0]['m'], dataset[0]['notA'], dataset[0]['notB'], sigma_A, sigma_B)
 print(loss)
